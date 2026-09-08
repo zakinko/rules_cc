@@ -57,13 +57,13 @@ all_link_actions = [
 
 def _impl(ctx):
     cpu = ctx.attr.cpu
-    if cpu not in ("freebsd", "openbsd", "netbsd"):
+    if cpu not in ("freebsd", "openbsd", "netbsd", "dragonfly"):
         fail("unsupported BSD CPU: %s" % cpu)
 
-    # FreeBSD and OpenBSD build with clang and libc++. NetBSD ships gcc and
-    # libstdc++ in the base system, so the compiler, the C++ runtime and the
-    # header directories all differ.
-    uses_gcc = cpu == "netbsd"
+    # FreeBSD and OpenBSD build with clang and libc++. NetBSD and DragonFly
+    # ship gcc and libstdc++ in the base system, so the compiler, the C++
+    # runtime and the header directories all differ.
+    uses_gcc = cpu in ("netbsd", "dragonfly")
 
     extra_default_link_flags = []
     if cpu == "openbsd":
@@ -247,7 +247,8 @@ def _impl(ctx):
                 tools = [tool(path = "/usr/bin/objcopy")],
             )],
             # NetBSD 11.0: echo | /usr/bin/c++ -E -Wp,-v -xc++ -
-            cxx_builtin_include_directories = ["/usr/include/g++", "/usr/include/gcc-12", "/usr/include"] if cpu == "netbsd" else ["/usr/lib/clang", "/usr/local/include", "/usr/include"],
+            # DragonFly 6.4: base gcc 8.
+            cxx_builtin_include_directories = ["/usr/include/g++", "/usr/include/gcc-12", "/usr/include"] if cpu == "netbsd" else ["/usr/include/c++/8.0", "/usr/libdata/gcc80", "/usr/include"] if cpu == "dragonfly" else ["/usr/lib/clang", "/usr/local/include", "/usr/include"],
             toolchain_identifier = "local_{}".format(cpu),
             host_system_name = "local",
             target_system_name = "local",

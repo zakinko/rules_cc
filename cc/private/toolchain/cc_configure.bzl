@@ -97,7 +97,7 @@ def cc_autoconf_impl(repository_ctx, overriden_tools = dict()):
         repository_ctx.template("BUILD", paths["@rules_cc//cc/private/toolchain:BUILD.empty.tpl"], {
             "%{cpu}": get_cpu_value(repository_ctx),
         })
-    elif cpu_value in ("freebsd", "openbsd", "netbsd"):
+    elif cpu_value in ("freebsd", "openbsd", "netbsd", "dragonfly"):
         paths = resolve_labels(repository_ctx, [
             "@rules_cc//cc/private/toolchain:BUILD.static.bsd",
             "@rules_cc//cc/private/toolchain:armeabi_cc_toolchain_config.bzl",

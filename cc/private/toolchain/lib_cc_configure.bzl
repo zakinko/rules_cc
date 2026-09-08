@@ -241,6 +241,9 @@ def get_cpu_value(repository_ctx):
         return "openbsd"
     if os_name.find("netbsd") != -1:
         return "netbsd"
+    if os_name.find("dragonfly") != -1:
+        # The JVM reports "dragonflybsd"; uname and GOOS say "dragonfly".
+        return "dragonfly"
     if os_name.find("windows") != -1:
         if arch == "aarch64":
             return "arm64_windows"
