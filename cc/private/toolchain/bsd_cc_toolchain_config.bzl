@@ -57,12 +57,19 @@ all_link_actions = [
 
 def _impl(ctx):
     cpu = ctx.attr.cpu
-    if cpu not in ("freebsd", "openbsd"):
+    if cpu not in ("freebsd", "openbsd", "netbsd"):
         fail("unsupported BSD CPU: %s" % cpu)
+
+    # FreeBSD and OpenBSD build with clang and libc++. NetBSD ships gcc and
+    # libstdc++ in the base system, so the compiler, the C++ runtime and the
+    # header directories all differ.
+    uses_gcc = cpu == "netbsd"
 
     extra_default_link_flags = []
     if cpu == "openbsd":
         extra_default_link_flags = ["-lc++abi", "-lpthread"]
+    if uses_gcc:
+        extra_default_link_flags = ["-lpthread"]
 
     default_link_flags_feature = feature(
         name = "default_link_flags",
@@ -73,7 +80,7 @@ def _impl(ctx):
                 flag_groups = [
                     flag_group(
                         flags = [
-                            "-lc++",
+                            "-lstdc++" if uses_gcc else "-lc++",
                             "-lm",
                             "-Wl,-z,relro,-z,now,-z,origin",
                             "-no-canonical-prefixes",
@@ -239,13 +246,16 @@ def _impl(ctx):
                 enabled = True,
                 tools = [tool(path = "/usr/bin/objcopy")],
             )],
-            cxx_builtin_include_directories = ["/usr/lib/clang", "/usr/local/include", "/usr/include"],
+            # NetBSD 11.0: echo | /usr/bin/c++ -E -Wp,-v -xc++ -
+            cxx_builtin_include_directories = ["/usr/include/g++", "/usr/include/gcc-12", "/usr/include"] if cpu == "netbsd" else ["/usr/lib/clang", "/usr/local/include", "/usr/include"],
             toolchain_identifier = "local_{}".format(cpu),
             host_system_name = "local",
             target_system_name = "local",
             target_cpu = cpu,
             target_libc = cpu,
-            compiler = "clang",
+            # abseil and others pick their warning flags by this name;
+            # gcc rejects the clang-only ones.
+            compiler = "gcc" if uses_gcc else "clang",
             abi_version = "local",
             abi_libc_version = "local",
             tool_paths = [
@@ -253,7 +263,7 @@ def _impl(ctx):
                 tool_path(name = "compat-ld", path = "/usr/bin/ld"),
                 tool_path(name = "cpp", path = "/usr/bin/cpp"),
                 tool_path(name = "dwp", path = "/usr/bin/dwp"),
-                tool_path(name = "gcc", path = "/usr/bin/clang"),
+                tool_path(name = "gcc", path = "/usr/bin/gcc" if uses_gcc else "/usr/bin/clang"),
                 tool_path(name = "gcov", path = "/usr/bin/gcov"),
                 tool_path(name = "ld", path = "/usr/bin/ld"),
                 tool_path(name = "nm", path = "/usr/bin/nm"),

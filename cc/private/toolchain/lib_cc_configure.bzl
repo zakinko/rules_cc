@@ -239,6 +239,8 @@ def get_cpu_value(repository_ctx):
         return "freebsd"
     if os_name.find("openbsd") != -1:
         return "openbsd"
+    if os_name.find("netbsd") != -1:
+        return "netbsd"
     if os_name.find("windows") != -1:
         if arch == "aarch64":
             return "arm64_windows"
