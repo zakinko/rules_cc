@@ -410,12 +410,8 @@ def configure_unix_toolchain(repository_ctx, cpu_value, overridden_tools):
     repository_ctx.file("tools/cpp/empty.cc", "int main() {}")
     darwin = cpu_value.startswith("darwin")
 
-    # The BSDs install their C driver as cc: clang on FreeBSD and OpenBSD, the
-    # base gcc on NetBSD and DragonFly.  Asking for gcc first would prefer one
-    # installed from ports or pkgsrc over the compiler the system was built
-    # with, so name cc there instead.  CC and overridden_tools still win, since
-    # _find_generic consults both before it looks at PATH.
-    if cpu_value in ("freebsd", "openbsd", "netbsd", "dragonfly"):
+    bsd = cpu_value in ("freebsd", "openbsd", "netbsd", "dragonfly")
+    if bsd:
         cc = _find_generic(repository_ctx, "cc", "CC", overridden_tools)
     else:
         cc = _find_generic(repository_ctx, "gcc", "CC", overridden_tools)
@@ -774,17 +770,12 @@ def configure_unix_toolchain(repository_ctx, cpu_value, overridden_tools):
                 force_linker_flags,
                 "-Wl,-z,relro,-z,now",
                 "-z",
-            ) + _add_linker_option_if_supported(
+            ) + (
                 # Bazel puts $ORIGIN in the RPATH it generates, and OpenBSD's
                 # ld.so only expands it when DF_ORIGIN is set, which is what
-                # -z origin sets.  glibc and musl expand it either way, so the
-                # need for this is invisible on Linux.  Probed separately from
-                # relro/now so that a linker without it keeps those two.
-                repository_ctx,
-                cc,
-                force_linker_flags,
-                "-Wl,-z,origin",
-                "-z",
+                # -z origin sets.  glibc and musl expand it either way, so
+                # only the BSDs get the flag.
+                ["-Wl,-z,origin"] if bsd else []
             ) + (
                 [
                     "-headerpad_max_install_names",
